@@ -1,61 +1,32 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template
 from groq import Groq
 import os
 
 app = Flask(__name__)
 
-client = Groq(
-    api_key=os.environ.get("GROQ_API_KEY")
-)
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-<title>AI Essay Question Generator</title>
-</head>
-<body>
-
-<h2>AI tạo câu hỏi tự luận</h2>
-
-<form method="post">
-<input name="topic" placeholder="Nhập chủ đề..." required>
-<button type="submit">Tạo câu hỏi</button>
-</form>
-
-{% if result %}
-<h3>Kết quả:</h3>
-<pre>{{ result }}</pre>
-{% endif %}
-
-</body>
-</html>
-"""
-
-@app.route("/", methods=["GET","POST"])
-def home():
+@app.route("/", methods=["GET", "POST"])
+def index():
     result = ""
 
     if request.method == "POST":
-        topic = request.form["topic"]
+        topic = request.form.get("topic")
 
-        prompt = f"""
-Tạo 3 câu hỏi tự luận về chủ đề: {topic}
+        try:
+            completion = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "user", "content": f"Tạo 3 câu hỏi tự luận về {topic}"}
+                ]
+            )
 
-Sau mỗi câu hỏi hãy viết:
-- Gợi ý đáp án
-"""
-        completion = client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[
-                {"role": "user", "content": f"Tạo 3 câu hỏi tự luận về: {topic}"}
-            ]
-        )
+            result = completion.choices[0].message.content
 
-        result = completion.choices[0].message.content
+        except Exception as e:
+            result = f"Lỗi API: {e}"
 
-    return render_template_string(HTML, result=result)
+    return render_template("index.html", result=result)
 
 if __name__ == "__main__":
-    app.run()
-
+    app.run(host="0.0.0.0", port=10000)
