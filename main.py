@@ -35,7 +35,7 @@ def index():
                     "role":"user",
                     "content":f"Tạo 3 câu hỏi tự luận về {topic}"
                 }],
-                model="llama3-8b-8192"
+                model="llama-3.1-8b-instant"
             )
 
             result = chat.choices[0].message.content
@@ -47,3 +47,4 @@ def index():
 
 if __name__=="__main__":
     app.run(host="0.0.0.0",port=10000)
+
