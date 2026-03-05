@@ -1,65 +1,61 @@
 from flask import Flask, request, render_template_string
-import google.generativeai as genai
+from groq import Groq
 import os
-
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 app = Flask(__name__)
 
-def tao_cau_hoi(chu_de):
-    try:
-        model = genai.GenerativeModel("models/gemini-2.5-flash")
-
-        prompt = f"""
-        Viết đầy đủ nội dung theo định dạng sau.
-
-        Câu hỏi:
-        (1 câu hỏi tự luận về chủ đề)
-
-        Gợi ý đáp án:
-        (gạch đầu dòng rõ ràng)
-
-        Chủ đề: {chu_de}
-        """
-
-        response = model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": 0.5,
-                "max_output_tokens": 2048
-            }
-        )
-
-        return response.text
-
-    except Exception as e:
-        return f"Lỗi: {str(e)}"
+client = Groq(
+    api_key=os.environ.get("GROQ_API_KEY")
+)
 
 HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-<title>AI Tạo Câu Hỏi</title>
+<title>AI Essay Question Generator</title>
 </head>
 <body>
-<h2>Nhập chủ đề</h2>
+
+<h2>AI tạo câu hỏi tự luận</h2>
+
 <form method="post">
-<input name="chu_de" required>
-<button>Tạo</button>
+<input name="topic" placeholder="Nhập chủ đề..." required>
+<button type="submit">Tạo câu hỏi</button>
 </form>
-{% if ket_qua %}
+
+{% if result %}
 <h3>Kết quả:</h3>
-<textarea rows="20" cols="80">{{ ket_qua }}</textarea>
+<pre>{{ result }}</pre>
 {% endif %}
+
 </body>
 </html>
 """
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET","POST"])
 def home():
-    ket_qua = None
-    if request.method == "POST":
-        ket_qua = tao_cau_hoi(request.form["chu_de"])
-    return render_template_string(HTML, ket_qua=ket_qua)
+    result = ""
 
-# KHÔNG cần app.run() khi deploy
+    if request.method == "POST":
+        topic = request.form["topic"]
+
+        prompt = f"""
+Tạo 3 câu hỏi tự luận về chủ đề: {topic}
+
+Sau mỗi câu hỏi hãy viết:
+- Gợi ý đáp án
+"""
+
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        result = completion.choices[0].message.content
+
+    return render_template_string(HTML, result=result)
+
+if __name__ == "__main__":
+    app.run()
