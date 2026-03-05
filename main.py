@@ -45,11 +45,10 @@ Tạo 3 câu hỏi tự luận về chủ đề: {topic}
 Sau mỗi câu hỏi hãy viết:
 - Gợi ý đáp án
 """
-
         completion = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama3-70b-8192",
             messages=[
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": f"Tạo 3 câu hỏi tự luận về: {topic}"}
             ]
         )
 
@@ -59,3 +58,4 @@ Sau mỗi câu hỏi hãy viết:
 
 if __name__ == "__main__":
     app.run()
+
